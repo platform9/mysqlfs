@@ -6,7 +6,7 @@ License:        Open Source
 URL:            https://andrea.brancatelli.it/category/tech/mysqlfs-tech/
 AutoReqProv:    no
 Provides:       mysqlfs
-Requires:       mariadb-libs
+Requires:       mysql-libs
 Requires:       fuse-libs
 Requires:       fuse
 
