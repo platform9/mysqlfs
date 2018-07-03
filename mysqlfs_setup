@@ -17,7 +17,7 @@
 DBUpdateScripts="/usr/local/share/mysqlfs/sql/update"
 
 clear
-echo 
+echo
 echo Welcome to MySQLfs database setup script - relase 1.0
 echo
 echo
@@ -37,6 +37,13 @@ printf "#> "
 read DBHost
 if [ "$DBHost" = "" ]; then
 	DBHost="localhost"
+fi
+
+echo "Please insert your DB Port (leave blank for 3306):"
+printf "#> "
+read DBPort
+if [ "$DBPort" = "" ]; then
+  DBPort="3306"
 fi
 
 echo "Please insert your MySQLfs DB name (leave blank for mysqlfs):"
@@ -62,7 +69,7 @@ fi
 
 echo
 echo Please confirm the following settings:
-echo mysql://$DBUser:$DBPass@$DBHost/$DBName
+echo mysql://$DBUser:$DBPass@$DBHost:$DBPort/$DBName
 echo
 echo "Correct? (y/n)"
 printf "#> "
@@ -76,9 +83,11 @@ if [ "$Correct" != "y" ]; then
   exit 1
 fi
 
-echo 
-echo Checking if we already a database...
-TableExists=`echo "SHOW TABLES LIKE 'tree';" | mysql -N -h $DBHost -u $DBUser --password=$DBPass $DBName`
+ConnectString="mysql -N -h $DBHost -u $DBUser --password=$DBPass --port=$DBPort $DBName"
+
+echo
+echo Checking if we already have a database...
+TableExists=`echo "SHOW TABLES LIKE 'tree';" | $ConnectString`
 
 if [ "$TableExists" != "tree" ]; then
   echo "A 'tree' table doesn't seem to exist in your database."
@@ -98,10 +107,10 @@ if [ "$TableExists" != "tree" ]; then
   fi
 
   echo Executing $DBUpdateScripts/initial_schema.sql
-  mysql -N -h $DBHost -u $DBUser --password=$DBPass $DBName < $DBUpdateScripts/initial_schema.sql > /tmp/dbupdate_stdout.log 2> /tmp/dbupdate_stderr.log
+  $ConnectString < $DBUpdateScripts/initial_schema.sql > /tmp/dbupdate_stdout.log 2> /tmp/dbupdate_stderr.log
   ErrorLevel=$?
-  if [ $ErrorLevel -ne 0 ]; then  
-    echo 
+  if [ $ErrorLevel -ne 0 ]; then
+    echo
     echo Error creating the initial schema.
     echo Aborting setup. Please restart $0 to retry.
     echo -------------------------------------------
@@ -116,13 +125,13 @@ if [ "$TableExists" != "tree" ]; then
 
 fi
 
-echo 
+echo
 echo Checking for the DATABASE_VERSION table...
-TableExists=`echo "SHOW TABLES LIKE 'DATABASE_VERSION';" | mysql -N -h $DBHost -u $DBUser --password=$DBPass $DBName`
+TableExists=`echo "SHOW TABLES LIKE 'DATABASE_VERSION';" | $ConnectString`
 
 if [ "$TableExists" != "DATABASE_VERSION" ]; then
   echo "A 'DATABASE_VERSION' table doesn't seem to exist in your database."
-  echo 
+  echo
   echo If this is your first database upgrade ever this may be normal.
   echo
   echo PLEASE BE AWARE THAT THIS SCRIPT REQUIRE YOUR PREVIOUS MYSQLFS
@@ -141,10 +150,10 @@ if [ "$TableExists" != "DATABASE_VERSION" ]; then
   fi
 
   echo Executing $DBUpdateScripts/00000000.sql
-  mysql -N -h $DBHost -u $DBUser --password=$DBPass $DBName < $DBUpdateScripts/00000000.sql > /tmp/dbupdate_stdout.log 2> /tmp/dbupdate_stderr.log
+  $ConnectString < $DBUpdateScripts/00000000.sql > /tmp/dbupdate_stdout.log 2> /tmp/dbupdate_stderr.log
   ErrorLevel=$?
-  if [ $ErrorLevel -ne 0 ]; then  
-    echo 
+  if [ $ErrorLevel -ne 0 ]; then
+    echo
     echo Error creating the DATABASE_VERSION table
     echo Aborting setup. Please restart $0 to retry.
     echo -------------------------------------------
@@ -161,14 +170,14 @@ fi
 
 echo
 echo Checking current DATABASE_VERSION:
-CurrentDB=`echo "SELECT MAX(CURRENT_VERSION) FROM DATABASE_VERSION;" | mysql -N -h $DBHost -u $DBUser --password=$DBPass $DBName`
+CurrentDB=`echo "SELECT MAX(CURRENT_VERSION) FROM DATABASE_VERSION;" | $ConnectString`
 
 if [ "$CurrentDB" = "NULL" ]; then
   CurrentDB=0
 fi
 
 echo Current database version $CurrentDB
-echo 
+echo
 
 NextDB=`expr $CurrentDB + 1`
 NextFile=`echo 0000000$NextDB | rev | cut -c 1-8 | rev`
@@ -177,7 +186,7 @@ echo "Searching for next DB upgrades (starting from #$NextDB)"
 
 while [ -f $DBUpdateScripts/$NextFile.sql ]; do
   echo "Found $DBUpdateScripts/$NextFile.sql - executing it"
-  mysql -N -h $DBHost -u $DBUser --password=$DBPass $DBName < $DBUpdateScripts/$NextFile.sql > /tmp/dbupdate_stdout.log 2> /tmp/dbupdate_stderr.log
+  $ConnectString < $DBUpdateScripts/$NextFile.sql > /tmp/dbupdate_stdout.log 2> /tmp/dbupdate_stderr.log
   ErrorLevel=$?
   if [ $ErrorLevel -ne 0 ]; then
    echo "Error applying update $NextDB"
@@ -187,7 +196,7 @@ while [ -f $DBUpdateScripts/$NextFile.sql ]; do
    rm  /tmp/dbupdate_stderr.log
    exit 1
   else
-   echo "INSERT INTO DATABASE_VERSION SET CURRENT_VERSION = $NextDB, LAST_CHANGE=NOW();" | mysql -N -h $DBHost -u $DBUser --password=$DBPass $DBName
+   echo "INSERT INTO DATABASE_VERSION SET CURRENT_VERSION = $NextDB, LAST_CHANGE=NOW();" | $ConnectString
    echo "Updating DATABASE_VERSION to version $NextDB"
   fi
   rm /tmp/dbupdate_std*.log
@@ -196,12 +205,12 @@ while [ -f $DBUpdateScripts/$NextFile.sql ]; do
   NextFile=`echo 0000000$NextDB | rev | cut -c 1-8 | rev`
 done
 
-echo 
+echo
 echo Everything done.
 echo
 echo Now you can upgrade your MySQLfs binaries and start/restart your filesystem
 echo by running command
 echo
-echo mysql://$DBUser:$DBPass@$DBHost/$DBName
-echo "#> mysqlfs -oallow_other -ohost=$DBHost -odatabase=$DBName -ouser=$DBUser -opassword=$DBPass -obig_writes /mountpoint"
+echo mysql://$DBUser:$DBPass@$DBHost:$DBPort/$DBName
+echo "#> mysqlfs -oallow_other -ohost=$DBHost -odatabase=$DBName -ouser=$DBUser -opassword=$DBPass -obig_writes -oport=$DBPort /mountpoint"
 echo
