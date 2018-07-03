@@ -4,7 +4,7 @@ Description=MySql-backed File System
 [Service]
 Type=forking
 EnvironmentFile=/etc/sysconfig/mysqlfs.env
-ExecStart=/usr/local/bin/mysqlfs -oallow_other -ohost=${MYSQLFS_HOST} -odatabase=${MYSQLFS_DB} -ouser=${MYSQLFS_USER} -opassword=${MYSQLFS_PWD} -obig_writes ${MYSQLFS_MOUNT_PATH}
+ExecStart=/usr/local/bin/mysqlfs -oallow_other -ohost=${MYSQLFS_HOST} -oport=${MYSQLFS_PORT} -odatabase=${MYSQLFS_DB} -ouser=${MYSQLFS_USER} -opassword=${MYSQLFS_PWD} -obig_writes ${MYSQLFS_MOUNT_PATH}
 ExecStop=/usr/bin/fusermount -u ${MYSQLFS_MOUNT_PATH}
 Restart=always
 RestartSec=15
