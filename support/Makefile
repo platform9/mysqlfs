@@ -54,20 +54,18 @@ rpm: $(MYSQLFS_RPM)
 
 exe: $(MYSQLFS_BIN)
 
-
 ${CMAKE}:
-	sudo yum -y install cmake
+	rpm -q cmake || (echo "ERROR: Please run yum install cmake" && exit 1)
 
 ${FUSE_DEVEL_HDR}:
-	sudo yum -y install fuse-devel
+	rpm -q fuse-devel || (echo "ERROR: Please run yum install fuse-devel" && exit 1)
 
 ${MYSQL_DEVEL_HDR}:
-	sudo yum -y install mysql-devel
+	rpm -q mysql-devel || (echo "ERROR: Please run yum install mysql-devel" && exit 1)
 
 $(MYSQLFS_BIN): ${CMAKE} ${FUSE_DEVEL_HDR} ${MYSQL_DEVEL_HDR}
 	echo "Building binary ${MYSQLFS_BIN}"
 	cd $(TOP_DIR) && cmake . && make
-
 
 ${MYSQLFS_RPM}: ${MYSQLFS_BIN} $(MYSQLFS_SPEC_FILE)
 	echo "Building RPM"
