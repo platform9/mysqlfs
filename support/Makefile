@@ -20,7 +20,6 @@ all: rpm
 $(BUILD_DIR):
 	mkdir -p $@
 
-
 SUPPORT_DIR := $(shell pwd)
 TOP_DIR := $(SUPPORT_DIR)/..
 BUILD_DIR := $(TOP_DIR)/build
@@ -54,20 +53,19 @@ rpm: $(MYSQLFS_RPM)
 
 exe: $(MYSQLFS_BIN)
 
-
 ${CMAKE}:
-	sudo yum -y install cmake
+	rpm -q cmake || (echo "ERROR: Please run yum install cmake" >&2 && exit 1)
 
 ${FUSE_DEVEL_HDR}:
-	sudo yum -y install fuse-devel
+	rpm -q fuse-devel || (echo "ERROR: Please run yum install fuse-devel" >&2 && exit 1)
 
 ${MYSQL_DEVEL_HDR}:
-	sudo yum -y install mysql-devel
+	# on centos7, yum install mysql-devel pulls in mariadb-devel
+	rpm -q mariadb-devel || (echo "ERROR: Please run yum install mysql-devel" >&2 && exit 1)
 
 $(MYSQLFS_BIN): ${CMAKE} ${FUSE_DEVEL_HDR} ${MYSQL_DEVEL_HDR}
 	echo "Building binary ${MYSQLFS_BIN}"
 	cd $(TOP_DIR) && cmake . && make
-
 
 ${MYSQLFS_RPM}: ${MYSQLFS_BIN} $(MYSQLFS_SPEC_FILE)
 	echo "Building RPM"
