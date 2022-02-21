@@ -45,11 +45,14 @@ int log_printf(enum log_types type, const char *logmsg, ...)
 	va_list args;
 	char buf[BUFSIZE];
 
+/*
+ * Screw it, log it all.
 	if ((log_types_mask & type & LOG_MASK_MAJOR) == 0)
 	  return 0;
 
 	if ((type & LOG_DEBUG) && (log_debug_mask & type & LOG_MASK_MINOR) == 0)
 	  return 0;
+*/
 
 /*
  * Subtypes for INFO and ERROR are not yet defined
